@@ -1,0 +1,216 @@
+library(caret)
+library(ggplot2)
+#library(MASS)
+
+
+datos <- read.csv("CompleteResponses.csv")
+head(datos)
+
+
+############### PRE PROCESSING #########################################################################
+
+# numericals to factors
+str(datos)
+datos$brand <- factor(datos$brand, levels=c(0,1), labels=c('Acer','Sony'))
+datos$elevel <- factor(datos$elevel, ordered = TRUE, levels = c(0,1,2,3,4))
+datos$zipcode <- as.factor(datos$zipcode)
+datos$car <- as.factor(datos$car)
+str(datos)
+
+# count na
+sum(is.na(datos))
+
+
+
+############### FEATURE SELECTION ######################################################################
+
+#1) correlation matrix
+#cor(datos[,c("age","salary","credit")])
+#findCorrelation(cor(datos[,c(1,2,6)]), cutoff=0.5)
+
+
+#2) recursive feature elimination
+set.seed(2710)
+control <- rfeControl(functions=rfFuncs, method="cv", number=5)
+results <- rfe(datos[,1:6], datos[,7], sizes=c(1:6), rfeControl=control)
+print(results)
+predictors(results)
+plot(results, type=c("g", "o"))
+
+
+#3) variables importance
+T2000 <- sample(nrow(datos), 2000)
+datosfs <- datos[T2000,]
+modelofs <- train(brand ~., 
+                  data = datosfs,
+                  method = 'rf',
+                  tuneGrid = expand.grid(mtry = c(16)),
+                  ntree = 50)
+
+vdf <- varImp(modelofs, scale=F)$importance
+vdf$Variable <- row.names(vdf)
+vdf <- vdf[order(-vdf$Overall),]
+rownames(vdf) <- NULL
+
+ggplot(vdf[1:8,], aes(x = reorder(Variable, Overall), y = Overall))+
+  geom_col(width = 0.7) +
+  ylim(0, max(vdf$Overall)*1.1) +
+  coord_flip() +
+  geom_text(aes(label=round(Overall,2)), hjust=-0.3, size=3.5)+
+  xlab("Variables") + ylab("Overall") + 
+  theme_minimal()
+
+
+
+varImp(modelofs, scale=T)
+
+
+#4) chi square test for discrete variables
+chisq.test(table(datos$elevel, datos$brand))
+chisq.test(table(datos$car, datos$brand))
+chisq.test(table(datos$zipcode, datos$brand))
+chisq.test(table(datos$zipcode, datos$elevel))
+chisq.test(table(datos$zipcode, datos$car))
+chisq.test(table(datos$car, datos$elevel))
+
+
+
+
+############### CREAR TRAINING & TESTING SETS ##########################################################
+datosfs <- datos[,-c(3,4,5)]
+set.seed(2710)
+inTrain <- createDataPartition(y = datosfs$brand, p = 0.75, list = F)
+training <- datosfs[ inTrain,]
+testing <- datosfs[-inTrain,]
+
+
+
+
+############### MODELO C5.0 ############################################################################
+ctrl <- trainControl(method = "cv",
+                     number=10)
+set.seed(666)
+modeloc50 <- train(brand ~ . , 
+                   data = training,
+                   method = 'C5.0',
+                   tuneLength = 2,
+                   trControl = ctrl)
+#print(modeloc50)
+#varImp(modeloc50, scale = F)
+prediccionesc50 <- predict(modeloc50, testing)
+postResample(prediccionesc50, testing$brand)
+#confusionMatrix(prediccionesc50, testing$brand)
+
+
+
+
+############### MODELO RANDOM FOREST ###################################################################
+tunegrid <- expand.grid(mtry = c(1,2,3))
+ctrl <- trainControl(method = "cv", 
+                     number=10)
+set.seed(905)
+modelorf <- train(brand ~ ., 
+                  data = training,
+                  method = 'rf',
+                  metric = 'Accuracy',
+                  tuneGrid = tunegrid,
+                  trControl = ctrl)
+#print(modelorf)
+#varImp(modelorf, scale = F)
+prediccionesrf <- predict(modelorf, testing)
+postResample(prediccionesrf, testing$brand)
+#confusionMatrix(prediccionesrf, testing$brand)
+
+
+
+
+
+############### PROBABILIDAD EN LAS CLASIFICACIONES EN MODELO SELECCIONADO #############################
+inc2 <- incomplete
+inc2$Prob <- predict(modeloc50, incomplete, "prob")$Sony
+ggplot(inc2, aes(x=age, y=salary, color=Prob)) + 
+  geom_point(aes(alpha=0.5), size=3) +
+  labs(x = "Age of Respondant", y="Salary", color="Acer vs. Sony \nprobability") +
+  guides(alpha = FALSE)
+
+
+
+############### COMPROBACION ERRORES Y CLASIFICACION ###################################################
+library(ggplot2)
+datosval <- testing
+datosval$pred <- prediccionesc50
+datosval$correct <- 0
+datosval$correct <-datosval$brand==datosval$pred
+datosval$corbrand <- paste(datosval$brand, datosval$correct)
+
+ggplot(datosval, aes(x=age, y=salary, color=corbrand)) + 
+  geom_point(aes(alpha=0.5), size=4) +
+  labs(x = "Age of Respondant", y="Salary", color="Brand Preference") +
+  guides(alpha = FALSE, size = FALSE)
+
+
+############### ESTIMACION DE VARIABLE INCOMPLETA ######################################################
+incomplete <- read.csv("SurveyIncomplete.csv")
+head(incomplete)
+str(incomplete)
+incomplete$elevel <- factor(incomplete$elevel, ordered = TRUE, levels = c(0,1,2,3,4))
+incomplete$brand <- factor(incomplete$brand, levels=c(0,1), labels=c('Acer','Sony'))
+incomplete$zipcode <- as.factor(incomplete$zipcode)
+incomplete$car <- as.factor(incomplete$car)
+str(incomplete)
+
+incomplete$brand <- predict(modeloc50, incomplete)
+#incomplete$brandrf <- predict(modelorf, incomplete)
+#postResample(incomplete$brandrf, incomplete$brandc50)
+
+
+
+
+############### GRAFICO CLASIFICACION FINAL ############################################################
+
+df <- rbind(incomplete, datos)
+dfpietotal <- as.data.frame(table(unlist(df$brand)))
+dfpietotal$Porc <- 100 * dfpietotal$Freq/sum(dfpietotal$Freq)
+dfpietotal$Sample <- "Total"
+
+df <- incomplete
+dfpieincomplete <- as.data.frame(table(unlist(df$brand)))
+dfpieincomplete$Porc <- 100 * dfpieincomplete$Freq/sum(dfpieincomplete$Freq)
+dfpieincomplete$Sample <- "Incomplete"
+
+df <- datos
+dfpiecomplete <- as.data.frame(table(unlist(df$brand)))
+dfpiecomplete$Porc <- 100 * dfpiecomplete$Freq/sum(dfpiecomplete$Freq)
+dfpiecomplete$Sample <- "Complete"
+
+
+
+
+dfpie <- rbind(dfpietotal, dfpiecomplete, dfpieincomplete)
+
+
+ggplot(dfpie, aes(x=factor(1), y=Porc, fill=factor(Var1))) +
+  facet_wrap(~Sample) + 
+  geom_bar(width = 1, stat = "identity") + 
+  labs(fill = "Preferred Brand") + 
+  scale_fill_manual(values=c("#A6ACAF", "#CB4335")) +
+  geom_text(size=4, aes(label = paste0(round(Porc,2), "%")), 
+            position = position_stack(vjust = 0.5)) +
+  theme(axis.line = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        axis.title.x = element_blank(), 
+        axis.title.y = element_blank(), 
+        axis.text.x = element_blank())
+
+
+
+
+
+
+############### EXPORTACION DE DATOS FINALES ###########################################################
+
+total <- rbind(datos, incomplete)
+write.csv(df, "finaldataset.csv", row.names = F)
+
+

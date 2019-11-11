@@ -1,0 +1,61 @@
+library(caret)
+
+
+datos <- read.csv("CompleteResponses.csv")
+head(datos)
+str(datos)
+
+datos$brand <- factor(datos$brand, levels=c(0,1), labels=c('Acer','Sony'))
+datos$elevel <- factor(datos$elevel, ordered = TRUE, levels = c(0,1,2,3,4))
+datos$zipcode <- as.factor(datos$zipcode)
+datos$car <- as.factor(datos$car)
+str(datos)
+
+
+### CREO TRAINING Y TESTING SET ###
+
+set.seed(2710)
+inTrain <- createDataPartition(y = datos$brand, p = 0.75, list = F)
+training <- datos[ inTrain,]
+testing <- datos[-inTrain,]
+
+table(training$brand)
+table(testing$brand)
+
+
+
+
+### MODELO EN VALIDATION ###
+
+ctrl <- trainControl(method = "cv",
+                     number=10)
+
+modeloc50 <- train(brand ~ . , 
+                data = training,
+                method = 'C5.0',
+                tuneLength = 4,
+                trControl = ctrl,
+                preProc = c("center", "scale"))
+
+print(modeloc50)
+
+prediccionesc50 <- predict(modeloc50, testing)
+confusionMatrix(prediccionesc50, testing$brand)
+
+
+
+
+### UNKNOWN BRANDS ###
+
+incompletec50 <- read.csv("Surveyincomplete.csv")
+head(incompletec50)
+str(incompletec50)
+
+incompletec50$elevel <- factor(incompletec50$elevel, ordered = TRUE, levels = c(0,1,2,3,4))
+incompletec50$brand <- factor(incompletec50$brand, levels=c(0,1), labels=c('Acer','Sony'))
+incompletec50$zipcode <- as.factor(incompletec50$zipcode)
+incompletec50$car <- as.factor(incompletec50$car)
+str(incompletec50)
+
+incompletec50$brand <- predict(modeloc50, incompletec50)
+table(incompletec50$brand)

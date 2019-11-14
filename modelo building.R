@@ -5,7 +5,9 @@ library(Metrics)
 
 
 df <- readRDS("cleandf.rds")
+vd <- read.csv("validationData.csv")
 names(df)
+dim(df)
 
 # base de datos ad-hoc para lanzar modelos (building)
 
@@ -36,10 +38,10 @@ rpartbuilding <- train (BUILDINGID ~ ., data = building,
                 method = "rpart",
                 tuneGrid = tuneGrid)
 
-pred <- predict(rpart, vd)
+pred <- predict(rpartbuilding, vd)
 accuracy(vd$BUILDINGID, pred)
 table(vd$BUILDINGID, pred)
-saveRDS(rpart, "rpartbuilding.rds")
+saveRDS(rpartbuilding, "rpartbuilding.rds")
 
 
 
@@ -52,10 +54,10 @@ rfbuilding <- train (BUILDINGID ~ ., data = building,
                 method = "rf",
                 tuneGrid = tuneGrid,
                 trControl = control)
-pred <- predict(setup, vd)
+pred <- predict(rfbuilding, vd)
 accuracy(vd$BUILDINGID, pred)
 table(vd$BUILDINGID, pred)
-saveRDS(rpart, "rfbuilding.rds")
+saveRDS(rfbuilding, "rfbuilding.rds")
 
 
 

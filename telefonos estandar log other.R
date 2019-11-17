@@ -4,23 +4,23 @@ library(caret)
 library(Metrics)
 library(reshape)
 
-
+        
 #------------------------------------------------------------------------------------------------#
 
 # ESTRUCTURA DE  WAPS
 
-df <- readRDS("cleandf.rds")
+df <- read.csv("validationData.csv")
 
 colwap <- which(startsWith(names(df), "WAP"))
 othercol <- which(names(df) %in% c("BUILDINGID","FLOOR", "PHONEID"))
 df[df==100] <- NA
 df[,colwap] <- log(df[,colwap]+105)
-saveRDS(df, "df_log.rds")
+saveRDS(df, "vd_log.rds")
 
 mdata <- melt(df[,c(colwap,othercol)], id.vars = c("BUILDINGID","FLOOR", "PHONEID"))
 mdata <- mdata[complete.cases(mdata),]
 
-sapply(unique(df$PHONEID), function(x) boxplot(mdata$value[mdata$PHONEID==x], main=x))
+# sapply(unique(df$PHONEID), function(x) hist(mdata2$value[mdata$PHONEID==x], main=x, breaks = 25))
 # tiene sentido estandarizar las señales por telefono
 
 #------------------------------------------------------------------------------------------------#
@@ -52,22 +52,21 @@ dftmp <- dftmp[order(dftmp$id),]
 colwap <- which(startsWith(names(dftmp), "WAP"))
 dfwap <- dftmp[,colwap]
 
+
 # 1) aplico transformaciones para hacerlo 0-1
 # 2) pongo outliers en el limite
 # 3) calculo el promedio del total muestra 
-# 4) transformo cada telefono al mismo promedio
-# 5) ordeno el df
+# 3) transformo cada telefono al mismo promedio
 dftrans <- (dfwap-dftmp$min)/(dftmp$max-dftmp$min)
 dftrans[dftrans<0] <- 0
 dftrans[dftrans>1] <- 1
-mediatotal <- sum(dftrans, na.rm = T)/sum(!is.na(dftrans))
+mediatotal <- readRDS("mediatotal_log.rds")
 dfconvert <- log(mediatotal, dftmp$meanstd)
 #dftrans_std <- dftrans^dfconvert
 dftrans_std <- dftrans
 dftrans_std$PHONEID <- dftmp$PHONEID
 #dftrans_std$id <- as.numeric(rownames(dftrans_std))
 #dftrans_std <- dftrans_std[order(dftrans_std$id),]
-
 
 #------------------------------------------------------------------------------------------------#
 
@@ -77,9 +76,9 @@ borro <- which(names(dftrans_std) %in% "id")
 mdata2 <- melt(dftrans_std[,-borro], id.vars = c("PHONEID"))
 mdata2 <- mdata2[complete.cases(mdata2),]
 
-estandar_validation <- data.frame(phone = numeric(0), mean = numeric(0), 
+estandar_validation <- data.frame(phone = numeric(0), mean = numeric(0),  
                                   min = numeric(0), max = numeric(0))
-for (i in unique(mdata2$PHONEID)) {
+for (i in unique(mdata$PHONEID)) {
     tmp <- filter(mdata2, PHONEID==i)
     media <- mean(tmp$value)
     desviacion <- sd(tmp$value)
@@ -102,9 +101,9 @@ addcols <- df[,-colwap]
 colwap <- which(startsWith(names(dftrans_std), "WAP"))
 df_standarized <- cbind(dftrans_std[,colwap], addcols)
 
+
 # guardo trabajo
-saveRDS(object = df_standarized, file = "df_mobile_log_std.rds")
-saveRDS(object = mediatotal, file = "mediatotal_log.rds")
+saveRDS(object = df_standarized, file = "vd_mobile_log_std.rds")
 
 
 

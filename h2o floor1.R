@@ -6,7 +6,9 @@ library(plotly)
 #------------------------------------------------------------------------------------------------#
 
 nas <- TRUE
-phonestd <- TRUE
+logdf <- T
+phonestd <- T
+center <- T
 building <- 2
 explico <- "FLOOR"
 
@@ -14,8 +16,14 @@ explico <- "FLOOR"
 
 # abro ficheros estandarizados
 
-if (phonestd==F) {df <- readRDS("cleandf.rds"); vd <- read.csv("validationData.csv")}
-if (phonestd==T) {df <- readRDS("df_mobile_std.rds"); vd <- readRDS("vd_mobile_std.rds")}
+if (logdf==T & phonestd==F) {df <- readRDS("df_log.rds"); vd <- readRDS("vd_log.rds");}
+if (logdf==T & phonestd==T & center==F) {df <- readRDS("df_mobile_log_std.rds"); vd <- readRDS("vd_mobile_log_std.rds")}
+if (logdf==T & phonestd==T & center==T) {df <- readRDS("df_mobile_log_std_cent.rds"); vd <- readRDS("vd_mobile_log_std_cent.rds")}
+
+if (logdf==F & phonestd==F) {df <- readRDS("cleandf.rds"); vd <- read.csv("validationData.csv")}
+if (logdf==F & phonestd==T & center==F) {df <- readRDS("df_mobile_std.rds"); vd <- readRDS("vd_mobile_std.rds")}
+if (logdf==F & phonestd==T & center==T) {df <- readRDS("df_mobile_std_cent.rds"); vd <- readRDS("vd_mobile_std_cent.rds")}
+
 if (nas==TRUE) {df[df==100] <- NA; vd[vd==100] <- NA}
 
 
@@ -124,7 +132,6 @@ h2o.performance(rf2, test)
 h2o.performance(gb1, test)
 h2o.performance(gb2, test)
 h2o.performance(gb3, test)
-
 bestmodel <- gb3
 
 #------------------------------------------------------------------------------------------------#

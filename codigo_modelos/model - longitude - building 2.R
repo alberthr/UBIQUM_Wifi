@@ -16,13 +16,13 @@ explico <- "LONGITUDE"
 
 # abro ficheros 
 
-if (std==F & log==T) {df <- readRDS("df_nostd_log.rds"); vd <- readRDS("vd_nostd_log.rds");}
-if (std==F & log==F) {df <- readRDS("df_nostd_nolog.rds"); vd <- readRDS("vd_nostd_nolog.rds");}
+if (std==F & log==T) {df <- readRDS("./data_frames/df_nostd_log.rds"); vd <- readRDS("./data_frames/vd_nostd_log.rds");}
+if (std==F & log==F) {df <- readRDS("./data_frames/df_nostd_nolog.rds"); vd <- readRDS("./data_frames/vd_nostd_nolog.rds");}
 
-if (std==T & log==T & cnt==T) {df <- readRDS("df_std_log_center.rds"); vd <- readRDS("vd_std_log_center.rds")}
-if (std==T & log==T & cnt==F) {df <- readRDS("df_std_log_nocenter.rds"); vd <- readRDS("vd_std_log_nocenter.rds")}
-if (std==T & log==F & cnt==T) {df <- readRDS("df_std_nolog_center.rds"); vd <- readRDS("vd_std_nolog_center.rds")}
-if (std==T & log==F & cnt==F) {df <- readRDS("df_std_nolog_nocenter.rds"); vd <- readRDS("vd_std_nolog_nocenter.rds")}
+if (std==T & log==T & cnt==T) {df <- readRDS("./data_frames/df_std_log_center.rds"); vd <- readRDS("./data_frames/vd_std_log_center.rds")}
+if (std==T & log==T & cnt==F) {df <- readRDS("./data_frames/df_std_log_nocenter.rds"); vd <- readRDS("./data_frames/vd_std_log_nocenter.rds")}
+if (std==T & log==F & cnt==T) {df <- readRDS("./data_frames/df_std_nolog_center.rds"); vd <- readRDS("./data_frames/vd_std_nolog_center.rds")}
+if (std==T & log==F & cnt==F) {df <- readRDS("./data_frames/df_std_nolog_nocenter.rds"); vd <- readRDS("./data_frames/vd_std_nolog_nocenter.rds")}
 
 if (nas==TRUE) {df[df==100] <- NA; vd[vd==100] <- NA}
 
@@ -80,11 +80,27 @@ modelo <- h2o.gbm(training_frame = train,
 
 h2o.performance(modelo, test)
 
+
+xgb <- h2o.xgboost(training_frame = train,
+                   validation_frame = test, 
+                   x=x,
+                   y=y,
+                   ntrees = 250,
+                   learn_rate = 0.3,
+                   max_depth = 15,
+                   nfolds = nfolds,
+                   model_id = "modelo_longitude_building2_xgb",
+                   seed = 1)
+
+h2o.performance(xgb, test)
+
+
 #------------------------------------------------------------------------------------------------#
 
 pred <- as.data.frame(h2o.predict(modelo, test))
 vd_building$LONG_PRED <- pred$predict
 
+h2o.saveModel(xgb, path = "modelos_h2o") 
 h2o.saveModel(modelo, path = "modelos_h2o") 
 model <- h2o.loadModel(path = "./modelos_h2o/modelo_longitude_building2")
 

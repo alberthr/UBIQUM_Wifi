@@ -9,7 +9,7 @@ nas <- T
 std <- T
 log <- T
 cnt <- T
-building <- 0
+building <- 2
 explico <- "LONGITUDE"
 
 #------------------------------------------------------------------------------------------------#
@@ -32,6 +32,7 @@ if (nas==TRUE) {df[df==100] <- NA; vd[vd==100] <- NA}
 
 df_building <- df[df$BUILDINGID==building,]
 colwap <- which(startsWith(names(df_building), "WAP"))
+
 if (nas==T) {waps100 <- sapply(df_building[,colwap], function(x) nrow(df_building) - sum(is.na(x))) %>% as.data.frame()}
 if (nas==F) {waps100 <- sapply(df_building[,colwap], function(x) nrow(df_building) - sum(x==100)) %>% as.data.frame()}
 delcol <- which(waps100$.==0)
@@ -46,46 +47,36 @@ df_building$FLOOR <- factor(df_building$FLOOR)
 #vd_building$FLOOR <- factor(vd_building$FLOOR)
 
 
-#------------------------------------------------------------------------------------------------#
-
-# H2O PROCESS
-
-# inicializo entorno
-h2o.init()
-h2o.removeAll()
-
-trainname <- paste0("train_b",building,"_",explico)
-testname <- paste0("test_b",building,"_",explico)
-train <- as.h2o(x = df_building, destination_frame = trainname)
-test <- as.h2o(x = vd_building, destination_frame = testname)
-
-x <- which(startsWith(names(df_building), "WAP"))
-y <- which(names(df_building) %in% explico)
-
-
-nfolds <- 5
-
-modelo <- h2o.gbm(training_frame = train,
-                  validation_frame = test, 
-                  x=x,
-                  y=y,
-                  ntrees = 30,
-                  learn_rate = 0.3,
-                  max_depth = 15,  
-                  score_each_iteration = T, 
-                  model_id = "modelo_longitude_building0",
-                  seed = 1) 
-
-h2o.performance(modelo, test)
 
 #------------------------------------------------------------------------------------------------#
 
-pred <- as.data.frame(h2o.predict(modelo, test))
-vd_building$LONG_PRED <- pred$predict
+# KNN
+df_building[is.na(df_building)] <- -0
+vd_building[is.na(vd_building)] <- -0
 
-h2o.saveModel(modelo, path = "modelos_h2o") 
-model <- h2o.loadModel(path = "./modelos_h2o/modelo_longitude_building0")
+train <- df_building[,which(startsWith(names(df_building), "WAP"))]
+test <- vd_building[,names(train)]
+cl <- df_building[,explico]
 
 
+for (i in 1:10) {
+    solucio <- knn3Train(train, test, cl, k = i)
+    pred <- mae(as.double(solucio), vd_building[,(names(vd_building) %in% explico)])
+    cat(paste(i,"-",pred,"\n"))
+}
 
 
+finaltrain <- cbind(cl, train)
+ctrl <- trainControl(method="cv",number = 10) 
+knnFit <- train(cl ~ ., 
+                data = finaltrain, 
+                method = "knn", 
+                trControl = ctrl, 
+                metric = 'MAE',
+                tuneGrid = expand.grid(k = c(1)))
+
+pred <- predict(knnFit, vd_building)
+mae(pred, vd_building[,names(vd_building) %in% explico])
+beep()
+
+saveRDS(knnFit, "./modelos_caret/longitude_b2.rds")

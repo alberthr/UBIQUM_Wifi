@@ -7,6 +7,7 @@ library(reshape2)
 
 new <- read.csv("validationData.csv")
 
+# cargar funcion
 transformo_fichero(new, T, T)
 transformo_fichero(new, F, T)
 

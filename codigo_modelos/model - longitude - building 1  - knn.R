@@ -1,8 +1,8 @@
+library(caret)
+library(beepr)
 library(h2o)
 library(tidyverse)
 library(Metrics)
-library(plotly)
-library(caret)
 
 #------------------------------------------------------------------------------------------------#
 
@@ -12,7 +12,7 @@ std <- T
 log <- T
 cnt <- T
 building <- 1
-explico <- "LATITUDE"
+explico <- "LONGITUDE"
 
 #------------------------------------------------------------------------------------------------#
 
@@ -73,10 +73,12 @@ knnFit <- train(cl ~ .,
                 method = "knn", 
                 trControl = ctrl, 
                 metric = 'MAE',
-                tuneGrid = expand.grid(k = c(4)))
+                tuneGrid = expand.grid(k = c(10)))
 
 pred <- predict(knnFit, vd_building)
 mae(pred, vd_building[,names(vd_building) %in% explico])
 beep()
 
-saveRDS(knnFit, "./modelos_caret/latitude_b1.rds")
+
+
+saveRDS(knnFit, "./modelos_caret/longitude_b1.rds")

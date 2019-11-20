@@ -1,3 +1,5 @@
+library(caret)
+library(beepr)
 library(h2o)
 library(tidyverse)
 library(Metrics)
@@ -71,7 +73,7 @@ knnFit <- train(cl ~ .,
                 method = "knn", 
                 trControl = ctrl, 
                 metric = 'MAE',
-                tuneGrid = expand.grid(k = c(1)))
+                tuneGrid = expand.grid(k = c(5)))
 
 pred <- predict(knnFit, vd_building)
 mae(pred, vd_building[,names(vd_building) %in% explico])

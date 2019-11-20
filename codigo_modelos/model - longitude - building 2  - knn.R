@@ -1,3 +1,5 @@
+library(caret)
+library(beepr)
 library(h2o)
 library(tidyverse)
 library(Metrics)
@@ -32,7 +34,6 @@ if (nas==TRUE) {df[df==100] <- NA; vd[vd==100] <- NA}
 
 df_building <- df[df$BUILDINGID==building,]
 colwap <- which(startsWith(names(df_building), "WAP"))
-
 if (nas==T) {waps100 <- sapply(df_building[,colwap], function(x) nrow(df_building) - sum(is.na(x))) %>% as.data.frame()}
 if (nas==F) {waps100 <- sapply(df_building[,colwap], function(x) nrow(df_building) - sum(x==100)) %>% as.data.frame()}
 delcol <- which(waps100$.==0)
@@ -45,7 +46,6 @@ vd_building <- vd[vd$BUILDINGID==building,]
 
 df_building$FLOOR <- factor(df_building$FLOOR)
 #vd_building$FLOOR <- factor(vd_building$FLOOR)
-
 
 
 #------------------------------------------------------------------------------------------------#
@@ -73,10 +73,12 @@ knnFit <- train(cl ~ .,
                 method = "knn", 
                 trControl = ctrl, 
                 metric = 'MAE',
-                tuneGrid = expand.grid(k = c(1)))
+                tuneGrid = expand.grid(k = c(4)))
 
 pred <- predict(knnFit, vd_building)
 mae(pred, vd_building[,names(vd_building) %in% explico])
 beep()
+
+
 
 saveRDS(knnFit, "./modelos_caret/longitude_b2.rds")

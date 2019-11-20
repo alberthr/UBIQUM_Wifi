@@ -2,6 +2,7 @@ library(h2o)
 library(tidyverse)
 library(Metrics)
 library(plotly)
+library(caret)
 
 #------------------------------------------------------------------------------------------------#
 
@@ -66,13 +67,13 @@ for (i in 1:10) {
 
 
 finaltrain <- cbind(cl, train)
-ctrl <- trainControl(method="cv",number = 10) 
+ctrl <- trainControl(method="cv",number = 2) 
 knnFit <- train(cl ~ ., 
                 data = finaltrain, 
                 method = "knn", 
                 trControl = ctrl, 
                 metric = 'MAE',
-                tuneGrid = expand.grid(k = c(1)))
+                tuneGrid = expand.grid(k = c(5)))
 
 pred <- predict(knnFit, vd_building)
 mae(pred, vd_building[,names(vd_building) %in% explico])

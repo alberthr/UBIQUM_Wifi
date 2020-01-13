@@ -16,6 +16,7 @@ explico <- "FLOOR"
 
 # abro ficheros 
 
+
 if (std==F & log==T) {df <- readRDS("./data_frames/df_nostd_log.rds"); vd <- readRDS("./data_frames/vd_nostd_log.rds");}
 if (std==F & log==F) {df <- readRDS("./data_frames/df_nostd_nolog.rds"); vd <- readRDS("./data_frames/vd_nostd_nolog.rds");}
 
@@ -25,6 +26,7 @@ if (std==T & log==F & cnt==T) {df <- readRDS("./data_frames/df_std_nolog_center.
 if (std==T & log==F & cnt==F) {df <- readRDS("./data_frames/df_std_nolog_nocenter.rds"); vd <- readRDS("./data_frames/vd_std_nolog_nocenter.rds")}
 
 if (nas==TRUE) {df[df==100] <- NA; vd[vd==100] <- NA}
+
 
 #------------------------------------------------------------------------------------------------#
 

@@ -66,8 +66,8 @@ transformo_fichero <- function (df, center, log) {
     
     # 3) transformo cada telefono al mismo promedio
     if (center==T) {
-        if (log==T) {mediatotal <- readRDS("media_log.rds")}
-        if (log==F) {mediatotal <- readRDS("media_nolog.rds")}
+        if (log==T) {mediatotal <- readRDS("./data_frames/media_log.rds")}
+        if (log==F) {mediatotal <- readRDS("./data_frames/media_nolog.rds")}
         dfconvert <- log(mediatotal, dftmp$meanstd)
         dftrans_std <- dftrans^dfconvert
     } else {dftrans_std <- dftrans}

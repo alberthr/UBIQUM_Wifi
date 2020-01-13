@@ -19,7 +19,7 @@ name_std <- paste0("vd_std_",namelog,"_",namecenter,".rds")
 
 # CONVIERTO A LOGARITMICO O NO SEGUN SEA NECESARIO
 
-df <- read.csv("validationData.csv")
+df <- read.csv("./data_frames/validationData.csv")
 colwap <- which(startsWith(names(df), "WAP"))
 othercol <- which(names(df) %in% c("BUILDINGID","FLOOR", "PHONEID"))
 df[df==100] <- NA

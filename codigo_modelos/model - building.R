@@ -2,8 +2,12 @@ library(h2o)
 library(tidyverse)
 library(Metrics)
 
-df <- readRDS("cleandf.rds")
-vd <- read.csv("validationData.csv")
+df <- readRDS("./data_frames/cleandf.rds")
+vd <- read.csv("./data_frames/validationData.csv")
+
+df$BUILDINGID <- factor(df$BUILDINGID)
+vd$BUILDINGID <- factor(vd$BUILDINGID)
+
 dim(df)
 
 # base de datos ad-hoc para lanzar modelos (building)

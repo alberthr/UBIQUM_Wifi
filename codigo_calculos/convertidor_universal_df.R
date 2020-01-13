@@ -2,7 +2,7 @@ library(tidyverse)
 library(rpart)
 library(caret)
 library(Metrics)
-library(reshape)
+library(reshape2)
 
 
 #------------------------------------------------------------------------------------------------#
@@ -21,7 +21,7 @@ name_std <- paste0("df_std_",namelog,"_",namecenter,".rds")
 
 # CONVIERTO A LOGARITMICO O NO SEGUN SEA NECESARIO
 
-df <- readRDS("cleandf.rds")
+df <- readRDS("./data_frames/cleandf.rds")
 colwap <- which(startsWith(names(df), "WAP"))
 othercol <- which(names(df) %in% c("BUILDINGID","FLOOR", "PHONEID"))
 df[df==100] <- NA
@@ -40,7 +40,7 @@ sapply(unique(df$PHONEID), function(x) boxplot(mdata$value[mdata$PHONEID==x], ma
 
 #------------------------------------------------------------------------------------------------#
 
-# CALCULO MAXIMOS Y MINIMOS PARA CADA MODELO DE TELEFONO Y LO AÑADO AL DF
+# CALCULO MAXIMOS Y MINIMOS PARA CADA MODELO DE TELEFONO Y LO A?ADO AL DF
 
 # creo matriz con informacion para conversiones
 estandar <- data.frame(phone = numeric(0), mean = numeric(0), sd = numeric(0), 
@@ -57,7 +57,7 @@ for (i in unique(mdata$PHONEID)) {
 estandar$meanstd <- (estandar$median-estandar$min)/(estandar$max-estandar$min)
 
 
-# fusiono df principal con esta informacion y añado un id para orderar siempre
+# fusiono df principal con esta informacion y a?ado un id para orderar siempre
 df$id <- as.numeric(rownames(df))
 dftmp <- merge(x=df, y=estandar, by.x = "PHONEID", by.y = "phone", all = T)
 dftmp <- dftmp[order(dftmp$id),]
@@ -70,7 +70,7 @@ dfwap <- dftmp[,colwap]
 
 #------------------------------------------------------------------------------------------------#
 
-# ESTANDARIZO SEÑALES POR TELEFONO 0-1 Y CENTRO O NO SEGUN SEA NECESARIO
+# ESTANDARIZO SE?ALES POR TELEFONO 0-1 Y CENTRO O NO SEGUN SEA NECESARIO
 
 # 1) aplico transformaciones para hacerlo 0-1
 dftrans <- (dfwap-dftmp$min)/(dftmp$max-dftmp$min)
@@ -96,33 +96,10 @@ dftrans_std$PHONEID <- dftmp$PHONEID
 
 #------------------------------------------------------------------------------------------------#
 
-# VALIDATION DEL ULTIMO PUNTO
-
-#borro <- which(names(dftrans_std) %in% "id")
-mdata2 <- melt(dftrans_std, id.vars = c("PHONEID"))
-mdata2 <- mdata2[complete.cases(mdata2),]
-
-estandar_validation <- data.frame(phone = numeric(0), mean = numeric(0), 
-                                  min = numeric(0), max = numeric(0))
-for (i in unique(mdata2$PHONEID)) {
-    tmp <- filter(mdata2, PHONEID==i)
-    media <- mean(tmp$value)
-    desviacion <- sd(tmp$value)
-    max <- max(tmp$value)
-    min <- min(tmp$value)
-    tmpdf <- data.frame(phone=i, mean=media, sd=desviacion, min=min, max=max)
-    estandar_validation <- rbind(estandar_validation, tmpdf)
-}
-
-sapply(unique(mdata2$PHONEID), function(x) boxplot(mdata2$value[mdata2$PHONEID==x], main=x))
-
-
-#------------------------------------------------------------------------------------------------#
-
-# añado columnas que faltan
+# a?ado columnas que faltan
 
 colwap <- which(startsWith(names(df), "WAP"))
-addcols <- df[,-colwap]
+addcols <- as.data.frame(df[,-colwap])
 
 colwap <- which(startsWith(names(dftrans_std), "WAP"))
 df_standarized <- cbind(dftrans_std[,colwap], addcols)
